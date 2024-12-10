@@ -1,0 +1,262 @@
+---
+title: "Untitled"
+author: "Roan Buma"
+date: "2024-12-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Preparation
+
+```{r}
+# List of required packages
+packages <- c("tidyverse",
+              "jsonlite",
+              "lubridate",
+              "ggwordcloud")
+
+# Check if each package is installed, install it if not, and load it
+for (pkg in packages) {
+  if (!require(pkg, character.only = TRUE)) {
+    install.packages(pkg, dependencies = TRUE)
+    library(pkg, character.only = TRUE)
+  }
+}
+
+add_theme = theme(
+  plot.title = element_text(size = 30, color="#1ed760", face = "bold",hjust = 0.5, margin = margin(b = 60)),
+  plot.title.position = "plot",
+  plot.background = element_rect(fill = "black"),
+  panel.background = element_rect(fill = "black"),
+  legend.background = element_rect(fill="black"),
+  text = element_text(color = "white"),
+  axis.text = element_text(color = "white"),
+  axis.title.y = element_blank(),
+  legend.position = "bottom",
+  legend.title.position = "top",
+  legend.title = element_text(hjust = 0.5),
+  legend.text = element_text(hjust = 0.5),
+  plot.caption = element_text(size=10, color = "#d6d6d6", face = "italic", hjust = 0.5, margin = margin(t = 60)),
+  plot.caption.position = "plot",
+  plot.margin = unit(c(1, 0.5, 1, 0.5),"in"))
+
+add_caption = labs(caption = "roanbuma.nl/wrap")
+```
+
+# Streaming History
+
+```{r}
+# read streaming history
+streaming_history_json <- fromJSON("my_spotify_data/Spotify Account Data/StreamingHistory_music_0.json")
+
+# format date
+streaming_history_json = streaming_history_json %>%
+  mutate(endTime = as.POSIXct(endTime, format = "%Y-%m-%d %H:%M"))
+
+# filter to only include 2024
+streaming_history_2024 = streaming_history_json %>%
+  filter(endTime >= "2024-01-01")
+
+streaming_history_2024 = streaming_history_2024 %>%
+  mutate(artist_track_name = paste(trackName,artistName,sep = " - "))
+```
+
+## Total Listening Time
+
+```{r}
+# calculate total listening time
+streaming_history_2024 %>%
+  summarise(total_seconds = sum(msPlayed)/1000) %>%
+  mutate(total_minutes = total_seconds/60) %>%
+  mutate(total_hours = total_minutes/60) %>%
+  mutate(HMS = seconds_to_period(total_seconds)%>%round(0))
+```
+
+## Top Artists
+
+```{r}
+# top artists
+top_artists = streaming_history_2024 %>%
+  group_by(artistName) %>%
+  summarise(n = n(),
+            seconds = sum(msPlayed)/1000) %>%
+  mutate(minutes = seconds/60) %>%
+  mutate(hours = minutes/60)
+```
+
+```{r}
+# based on number of plays
+top_artists %>%
+  arrange(desc(n))
+```
+
+```{r}
+# based on total listening time
+top_artists %>%
+  arrange(desc(seconds))
+```
+
+### bar plot
+
+```{r}
+top_artists %>%
+  slice_max(n, n = 25) %>%
+  ggplot(aes(y = reorder(artistName, n), x = n, fill = minutes)) +
+  geom_col() +
+  scale_fill_gradient(high="#1ed760",low="#0e662d")+
+  labs(title = "Your favourite artists this year",
+       y = "Artist",
+       x = "Number of Plays",
+       fill = "Minutes played")+
+  guides(fill = guide_colorbar(barwidth = 15, barheight = 1)) +
+  add_caption + 
+  add_theme
+
+ggsave("top_artists_bar.png",
+       width = 2160,
+       height = 3840,
+       units = "px")
+```
+
+
+### wordcloud
+
+```{r}
+top_artists %>%
+  slice_max(n, n = 100) %>%
+  ggplot(aes(label = artistName, size = n, colour = seconds)) +
+  geom_text_wordcloud() +
+  scale_color_gradient(high="#1ed760",low="#0e662d")+
+  scale_size_area(max_size = 20) +
+  #theme_minimal() +
+  theme(plot.background = element_rect(fill = "black"),
+        panel.background = element_rect(fill = "black"),
+        text = element_text(color = "white"))+
+  add_caption + 
+  add_theme +
+  labs(title=paste("Your favourite artists this year"))
+
+ggsave("top_artists_wordcloud.png",
+       width = 2160,
+       height = 3840,
+       units = "px")
+```
+
+## Top Songs
+
+```{r}
+# top songs
+top_songs = streaming_history_2024 %>%
+  group_by(artistName,trackName) %>%
+  summarise(n = n(),
+            seconds = sum(msPlayed)/1000) %>%
+  mutate(minutes = seconds/60) %>%
+  mutate(hours = minutes/60)
+```
+
+```{r}
+# based on number of plays
+top_songs %>%
+  arrange(desc(n))
+```
+
+```{r}
+# based on total listening time
+top_songs %>%
+  arrange(desc(seconds))
+```
+
+
+
+### bar plot
+
+```{r}
+top_songs %>%
+  ungroup() %>%
+  arrange(desc(n)) %>%
+  slice_max(n, n = 20) %>%
+  ggplot(aes(y = reorder(trackName, n), x = n, fill = seconds)) +
+  geom_col() +
+  scale_fill_gradient(high="#1ed760",low="#0e662d")+
+  labs(title = "Top Songs by Number of Plays",
+       y = "Song",
+       x = "Number of Plays",
+       fill = "Seconds played")+
+  guides(fill = guide_colorbar(barwidth = 15, barheight = 1)) +
+  add_caption + 
+  add_theme
+
+ggsave("top_songs_bar.png",
+       width = 2160,
+       height = 3840,
+       units = "px")
+```
+
+
+### wordcloud
+
+```{r}
+top_songs %>%
+  ungroup() %>%
+  slice_max(n, n = 25) %>%
+  ggplot(aes(label = trackName, size = n, colour = seconds)) +
+  geom_text_wordcloud(rm_outside = T) +
+  scale_color_gradient(high="#1ed760",low="#0e662d")+
+  scale_size_area(max_size = 20) +
+  theme_minimal() +
+  theme(plot.background = element_rect(fill = "black"),
+        panel.background = element_rect(fill = "black"),
+        text = element_text(color = "white"))+
+  labs(title="Some of your favourite\nsongs this year are:")+
+  add_caption + 
+  add_theme
+
+ggsave("top_songs_wordcloud.png",
+       width = 2160,
+       height = 3840,
+       units = "px")
+```
+
+```{r}
+# who is top artist?
+top_artist = top_artists %>%
+  arrange(desc(n)) %>%
+  slice_max(n, n = 1) %>%
+  pull(artistName)
+
+top_songs %>%
+  filter(artistName == top_artist) %>%
+  arrange(desc(n))
+```
+
+```{r}
+top_songs %>%
+  filter(artistName == top_artist) %>%
+  ungroup() %>%
+  arrange(desc(n)) %>%
+  slice_max(n, n = 15) %>%
+  ggplot(aes(label = trackName, size = n, colour = seconds)) +
+  geom_text_wordcloud(rm_outside = T) +
+  scale_color_gradient(high="#1ed760",low="#0e662d")+
+  scale_size_area(max_size = 20) +
+  #theme_minimal() +
+  theme(plot.background = element_rect(fill = "black"),
+        panel.background = element_rect(fill = "black"),
+        text = element_text(color = "white"))+
+  labs(title=paste("You really loved listening to\n",top_artist,"\nin 2024! Some of your\nfavourites this year:")) +
+  add_caption + 
+  add_theme
+
+ggsave("top_artist_top_songs_wordcloud.png",
+       width = 2160,
+       height = 3840,
+       units = "px")
+```
+
+```{r}
+
+```
+
