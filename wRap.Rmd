@@ -38,9 +38,8 @@ add_theme = theme(
   panel.border = element_blank(),  
   legend.background = element_rect(fill="black"),
   text = element_text(color = "white"),
-  axis.text = element_text(color = "white"),
   axis.title.y = element_blank(),
-  axis.ticks = element_text(color = "white", size = 15),
+  axis.text = element_text(color = "white", size = 15),
   axis.title = element_text(color = "white", size = 15),
   legend.position = "bottom",
   legend.title.position = "top",
@@ -122,7 +121,7 @@ plot_2 = top_artists %>%
   labs(title = "Your favourite artists this year",
        y = "Artist",
        x = "Number of Plays",
-       fill = "Minutes played")+
+       fill = "Minutes played") +
   guides(fill = guide_colorbar(barwidth = 15, barheight = 1)) +
   add_caption + 
   add_theme
