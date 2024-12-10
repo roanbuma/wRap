@@ -27,30 +27,42 @@ for (pkg in packages) {
 }
 
 add_theme = theme(
-  plot.title = element_text(size = 30, color="#1ed760", face = "bold",hjust = 0.5, margin = margin(b = 60)),
+  plot.title = element_text(size = 30,
+                            color="#1ed760",
+                            face = "bold",
+                            hjust = 0.5,
+                            margin = margin(b = 60)),
   plot.title.position = "plot",
-  plot.background = element_rect(fill = "black"),
+  plot.background = element_rect(fill = "black", color="black"),
   panel.background = element_rect(fill = "black"),
+  panel.border = element_blank(),  
   legend.background = element_rect(fill="black"),
   text = element_text(color = "white"),
   axis.text = element_text(color = "white"),
   axis.title.y = element_blank(),
+  axis.ticks = element_text(color = "white", size = 15),
+  axis.title = element_text(color = "white", size = 15),
   legend.position = "bottom",
   legend.title.position = "top",
   legend.title = element_text(hjust = 0.5),
   legend.text = element_text(hjust = 0.5),
-  plot.caption = element_text(size=10, color = "#d6d6d6", face = "italic", hjust = 0.5, margin = margin(t = 60)),
+  plot.caption = element_text(size=15,
+                              color = "#d6d6d6",
+                              face = "italic",
+                              hjust = 0.5,
+                              margin = margin(t = 60)),
   plot.caption.position = "plot",
-  plot.margin = unit(c(1, 0.5, 1, 0.5),"in"))
+  plot.margin = unit(c(1, 0.5, 1, 0.5),"in")
+  )
 
-add_caption = labs(caption = "roanbuma.nl/wrap")
+add_caption = labs(caption = "roanbuma.nl/visualisation/wrap")
 ```
 
 # Streaming History
 
 ```{r}
 # read streaming history
-streaming_history_json <- fromJSON("my_spotify_data/Spotify Account Data/StreamingHistory_music_0.json")
+streaming_history_json <- fromJSON("Spotify Account Data/StreamingHistory_music_0.json")
 
 # format date
 streaming_history_json = streaming_history_json %>%
@@ -102,8 +114,8 @@ top_artists %>%
 ### bar plot
 
 ```{r}
-top_artists %>%
-  slice_max(n, n = 25) %>%
+plot_2 = top_artists %>%
+  slice_max(n, n = 15) %>%
   ggplot(aes(y = reorder(artistName, n), x = n, fill = minutes)) +
   geom_col() +
   scale_fill_gradient(high="#1ed760",low="#0e662d")+
@@ -115,7 +127,8 @@ top_artists %>%
   add_caption + 
   add_theme
 
-ggsave("top_artists_bar.png",
+ggsave("2_top_artists_bar.png",
+       plot = plot_2,
        width = 2160,
        height = 3840,
        units = "px")
@@ -125,7 +138,7 @@ ggsave("top_artists_bar.png",
 ### wordcloud
 
 ```{r}
-top_artists %>%
+plot_1 = top_artists %>%
   slice_max(n, n = 100) %>%
   ggplot(aes(label = artistName, size = n, colour = seconds)) +
   geom_text_wordcloud() +
@@ -139,7 +152,8 @@ top_artists %>%
   add_theme +
   labs(title=paste("Your favourite artists this year"))
 
-ggsave("top_artists_wordcloud.png",
+ggsave("1_top_artists_wordcloud.png",
+       plot = plot_1,
        width = 2160,
        height = 3840,
        units = "px")
@@ -169,12 +183,10 @@ top_songs %>%
   arrange(desc(seconds))
 ```
 
-
-
 ### bar plot
 
 ```{r}
-top_songs %>%
+plot_4 = top_songs %>%
   ungroup() %>%
   arrange(desc(n)) %>%
   slice_max(n, n = 20) %>%
@@ -189,7 +201,8 @@ top_songs %>%
   add_caption + 
   add_theme
 
-ggsave("top_songs_bar.png",
+ggsave("4_top_songs_bar.png",
+       plot = plot_4,
        width = 2160,
        height = 3840,
        units = "px")
@@ -199,7 +212,7 @@ ggsave("top_songs_bar.png",
 ### wordcloud
 
 ```{r}
-top_songs %>%
+plot_3 = top_songs %>%
   ungroup() %>%
   slice_max(n, n = 25) %>%
   ggplot(aes(label = trackName, size = n, colour = seconds)) +
@@ -210,11 +223,12 @@ top_songs %>%
   theme(plot.background = element_rect(fill = "black"),
         panel.background = element_rect(fill = "black"),
         text = element_text(color = "white"))+
-  labs(title="Some of your favourite\nsongs this year are:")+
-  add_caption + 
+  labs(title="Some of your favourite\nsongs this year are:") +
+  add_caption +
   add_theme
 
-ggsave("top_songs_wordcloud.png",
+ggsave("3_top_songs_wordcloud.png",
+       plot = plot_3,
        width = 2160,
        height = 3840,
        units = "px")
@@ -233,7 +247,7 @@ top_songs %>%
 ```
 
 ```{r}
-top_songs %>%
+plot_5 = top_songs %>%
   filter(artistName == top_artist) %>%
   ungroup() %>%
   arrange(desc(n)) %>%
@@ -242,7 +256,6 @@ top_songs %>%
   geom_text_wordcloud(rm_outside = T) +
   scale_color_gradient(high="#1ed760",low="#0e662d")+
   scale_size_area(max_size = 20) +
-  #theme_minimal() +
   theme(plot.background = element_rect(fill = "black"),
         panel.background = element_rect(fill = "black"),
         text = element_text(color = "white"))+
@@ -250,7 +263,8 @@ top_songs %>%
   add_caption + 
   add_theme
 
-ggsave("top_artist_top_songs_wordcloud.png",
+ggsave("5_top_artist_top_songs_wordcloud.png",
+       plot = plot_5,
        width = 2160,
        height = 3840,
        units = "px")
